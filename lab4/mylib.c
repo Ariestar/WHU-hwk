@@ -63,7 +63,7 @@ int extract_symbols_from_elf(const char *filepath, const char *shortname, Symbol
 
     /* 校验 ELF 魔数 */
     if (memcmp(ehdr.e_ident, ELFMAG, SELFMAG) != 0) {
-        fprintf(stderr, "[-] 不是合法的 ELF 文件: %s\n", filepath);
+        fprintf(stderr, "[-] 非合法的 ELF 文件: %s\n", filepath);
         fclose(fp);
         return -1;
     }
@@ -315,7 +315,7 @@ int list_archive(const char *ar_path) {
 
     char magic[AR_MAGIC_LEN];
     if (fread(magic, 1, AR_MAGIC_LEN, fp) != AR_MAGIC_LEN || memcmp(magic, AR_MAGIC, AR_MAGIC_LEN) != 0) {
-        fprintf(stderr, "[-] 不是有效的静态库文件: %s\n", ar_path);
+        fprintf(stderr, "[-] 非有效静态库文件: %s\n", ar_path);
         fclose(fp);
         return -1;
     }
@@ -377,7 +377,7 @@ int extract_archive(const char *ar_path, const char *target_name) {
 
     char magic[AR_MAGIC_LEN];
     if (fread(magic, 1, AR_MAGIC_LEN, fp) != AR_MAGIC_LEN || memcmp(magic, AR_MAGIC, AR_MAGIC_LEN) != 0) {
-        fprintf(stderr, "[-] 不是有效的静态库文件: %s\n", ar_path);
+        fprintf(stderr, "[-] 非有效静态库文件: %s\n", ar_path);
         fclose(fp);
         return -1;
     }
@@ -455,7 +455,7 @@ int show_symbols(const char *ar_path) {
 
     char magic[AR_MAGIC_LEN];
     if (fread(magic, 1, AR_MAGIC_LEN, fp) != AR_MAGIC_LEN || memcmp(magic, AR_MAGIC, AR_MAGIC_LEN) != 0) {
-        fprintf(stderr, "[-] 不是有效的静态库文件: %s\n", ar_path);
+        fprintf(stderr, "[-] 非有效静态库文件: %s\n", ar_path);
         fclose(fp);
         return -1;
     }
