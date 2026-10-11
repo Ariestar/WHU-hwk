@@ -22,7 +22,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     font-family: 'Maple Mono NF CN', 'DejaVu Sans Mono', 'Liberation Mono', monospace;
     display: inline-block;
     padding: 24px;
-    width: 960px;
+    width: 1040px;
   }}
   .window {{
     background-color: #161b22;
@@ -31,6 +31,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7);
     overflow: hidden;
     width: 100%;
+    margin-bottom: 24px;
   }}
   .titlebar {{
     background-color: #21262d;
@@ -63,7 +64,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     padding-right: 60px;
   }}
   .terminal-body {{
-    padding: 20px 22px;
+    padding: 20px 24px;
     color: #e6edf3;
     font-size: 13.5px;
     line-height: 1.55;
@@ -81,7 +82,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .cmd-text {{ color: #ffa657; font-weight: bold; }}
   .cmd-output {{
     color: #c9d1d9;
-    margin-bottom: 14px;
+    margin-bottom: 18px;
   }}
 </style>
 </head>
@@ -106,6 +107,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 def render_session(title, sessions, output_png):
     """
     sessions: list of tuples (path, command, output)
+    Renders terminal session into high-resolution PNG with complete window bounds.
     """
     body_parts = []
     for path, cmd, out in sessions:
@@ -128,10 +130,9 @@ def render_session(title, sessions, output_png):
     with open(tmp_html, "w", encoding="utf-8") as f:
         f.write(full_html)
 
-    # Estimate height based on line count
-    total_lines = sum(len(out.splitlines()) + 3 for _, _, out in sessions)
-    calc_height = max(300, min(total_lines * 24 + 140, 3200))
-    calc_width = 1008
+    # Use a tall viewport (8000px) so Chrome never truncates any content
+    calc_width = 1120
+    calc_height = 8000
 
     cmd = [
         "google-chrome",
@@ -144,27 +145,44 @@ def render_session(title, sessions, output_png):
     ]
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
 
-    # Crop with Pillow to content bounds + tight clean border
+    # Automatically detect true element bounds using Pillow
     im = Image.open(raw_png)
-    # The body background is (11, 15, 20)
-    # Crop to the actual terminal window
     w, h = im.size
-    # Scan from bottom to find where window ends
-    # Background color is (11, 15, 20)
-    bg_color = im.getpixel((10, h - 5))
-    bottom_cut = h
+    bg = im.getpixel((0, 0))
+
+    # Scan from bottom upwards to find true end of content & shadow
+    bottom_y = 0
     for y in range(h - 1, 0, -2):
-        row_diff = False
-        for x in range(30, w - 30, 20):
+        has_content = False
+        for x in range(30, w - 30, 15):
             p = im.getpixel((x, y))
-            if abs(p[0] - bg_color[0]) > 10 or abs(p[1] - bg_color[1]) > 10 or abs(p[2] - bg_color[2]) > 10:
-                row_diff = True
+            if any(abs(p[i] - bg[i]) > 8 for i in range(3)):
+                has_content = True
                 break
-        if row_diff:
-            bottom_cut = min(h, y + 28)
+        if has_content:
+            bottom_y = y
             break
 
-    cropped = im.crop((0, 0, w, bottom_cut))
+    # Scan left and right bounds
+    min_x, max_x = w, 0
+    min_y = 0
+    for y in range(bottom_y + 1):
+        for x in range(10, w - 10, 5):
+            p = im.getpixel((x, y))
+            if any(abs(p[i] - bg[i]) > 8 for i in range(3)):
+                if x < min_x: min_x = x
+                if x > max_x: max_x = x
+                if min_y == 0 and y > 0: min_y = y
+
+    pad = 20
+    crop_box = (
+        max(0, min_x - pad),
+        max(0, min_y - pad),
+        min(w, max_x + pad),
+        min(h, bottom_y + pad)
+    )
+
+    cropped = im.crop(crop_box)
     cropped.save(output_png, optimize=True)
 
     if os.path.exists(tmp_html):

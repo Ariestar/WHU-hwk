@@ -14,7 +14,13 @@ def main():
     lab3_dir = os.path.join(root_dir, "lab3")
     lab4_dir = os.path.join(root_dir, "lab4")
 
-    print("[*] 开始生成实验截图...")
+    print("[*] 正在准备各实验初始编译构建状态...")
+    subprocess.run("make", shell=True, cwd=lab1_dir, check=True)
+    subprocess.run("make", shell=True, cwd=lab2_dir, check=True)
+    subprocess.run("make", shell=True, cwd=lab3_dir, check=True)
+    subprocess.run("make", shell=True, cwd=lab4_dir, check=True)
+
+    print("[*] 开始生成全套实验截图...")
 
     # --- 实验 1 ---
     # 1. 源码展示
@@ -71,12 +77,13 @@ def main():
 
     # --- 实验 2 ---
     # 6. objdump -dx main.o & readelf -r
-    out_reloc_entries = run_cmd(lab2_dir, "readelf -r main.o && objdump -dx main.o | head -n 35")
+    out_readelf_r = run_cmd(lab2_dir, "readelf -r main.o")
+    out_objdump_dx = run_cmd(lab2_dir, "objdump -dx main.o")
     render_session(
         "基础实验2 - 提取重定位条目与节详细信息",
         [
-            ("~/Coding/WHU-hwk/lab2", "readelf -r main.o", run_cmd(lab2_dir, "readelf -r main.o")),
-            ("~/Coding/WHU-hwk/lab2", "objdump -dx main.o | head -n 32", run_cmd(lab2_dir, "objdump -dx main.o | head -n 32"))
+            ("~/Coding/WHU-hwk/lab2", "readelf -r main.o", out_readelf_r),
+            ("~/Coding/WHU-hwk/lab2", "objdump -dx main.o", out_objdump_dx)
         ],
         os.path.join(SCREENSHOTS_DIR, "exp2_01_objdump_main_reloc.png")
     )
